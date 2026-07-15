@@ -152,4 +152,4 @@ cs2_webradar/
 ---
 
 ## 📄 Licença
-Este projeto está licenciado sob [GPL-3.0](https://github.com/clauadv/cs2_webradar?tab=GPL-3.0-1-ov-file#readme)
+Este projeto está licenciado sob [GPL-3.0](https://github.com/clauadv/cs2_webradar?tab=GPL-3.0-1-ov-file#readme)# cs2_webradar-main
