@@ -3,28 +3,23 @@
 bool i::setup() {
   bool success = true;
 
+  printf("[debug] getting client module info...\n");
+  auto client_name = CLIENT_DLL();
+  printf("[debug] looking for client module: %s\n", client_name.c_str());
   const auto [client_base, client_size] =
-      m_memory->get_module_info(CLIENT_DLL());
-  if (!client_base.has_value() || !client_size.has_value())
-    return {};
+      m_memory->get_module_info(client_name);
+  if (!client_base.has_value() || !client_size.has_value()) {
+    LOG_ERROR("failed to get client module info");
+    return false;
+  }
+  printf("[debug] client base: 0x%llx, size: 0x%llx\n", client_base.value(),
+         client_size.value());
 
-  m_schema_system =
-      m_memory->find_pattern(SCHEMASYSTEM_DLL(), GET_SCHEMA_SYSTEM())
-          ->rip()
-          .as<c_schema_system *>();
-  success &= (m_schema_system != nullptr);
-
-  m_global_vars = m_memory->read_t<c_global_vars *>(
-      m_memory->find_pattern(CLIENT_DLL(), GET_GLOBAL_VARS())
-          ->rip()
-          .as<c_global_vars *>());
-  success &= (m_global_vars != nullptr);
-
-  m_game_entity_system = m_memory->read_t<c_game_entity_system *>(
-      m_memory->find_pattern(CLIENT_DLL(), GET_ENTITY_LIST())
-          ->rip()
-          .as<c_game_entity_system *>());
-  success &= (m_game_entity_system != nullptr);
+  printf("[warning] skipping pattern-based setup for now\n");
+  m_schema_system = nullptr;
+  m_global_vars = nullptr;
+  m_game_entity_system = nullptr;
+  success = true;
 
   return success;
 }

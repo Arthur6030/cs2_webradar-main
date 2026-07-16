@@ -3,47 +3,23 @@
 #include <string>
 
 /* game modules - obfuscated at runtime */
-inline std::string CLIENT_DLL() {
-  std::string s = "|l`liu0kii";
-  for (auto &c : s)
-    c ^= 0x1A;
-  return s;
-}
+inline std::string CLIENT_DLL() { return "client.dll"; }
 
-inline std::string ENGINE2_DLL() {
-  std::string s = "`l``|l`0kii";
-  for (auto &c : s)
-    c ^= 0x1A;
-  return s;
-}
+inline std::string ENGINE2_DLL() { return "engine2.dll"; }
 
-inline std::string SCHEMASYSTEM_DLL() {
-  std::string s = "x|`|^i^v|`|0kii";
-  for (auto &c : s)
-    c ^= 0x1A;
-  return s;
-}
+inline std::string SCHEMASYSTEM_DLL() { return "schemasystem.dll"; }
 
-/* game signatures - obfuscated at runtime */
+/* game signatures - temporary plaintext for debugging */
 inline std::string GET_SCHEMA_SYSTEM() {
-  std::string s = "H)`+`5#? ? ? ? L?+0? ? ? ? 3?`";
-  for (auto &c : s)
-    c ^= 0x1A;
-  return s;
+  return "48 8B 05 ? ? ? ? 48 8B D9 48 85 C0 74 1D 48 8B 40 30 48 8B 00";
 }
 
 inline std::string GET_ENTITY_LIST() {
-  std::string s = "H)+0? ? ? ? H)+|$ ? ? ? ? +i?`1`l";
-  for (auto &c : s)
-    c ^= 0x1A;
-  return s;
+  return "48 8B 05 ? ? ? ? 48 8B 50 08 48 85 C0 74 0D";
 }
 
 inline std::string GET_GLOBAL_VARS() {
-  std::string s = "H)+5? ? ? ? H)+B";
-  for (auto &c : s)
-    c ^= 0x1A;
-  return s;
+  return "48 8B 05 ? ? ? ? 48 8B 40 08 48 85 C0 74 0D";
 }
 
 inline std::string GET_LOCAL_PLAYER_CONTROLLER() {

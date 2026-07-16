@@ -9,10 +9,17 @@ bool main() {
   }
 
   config_data_t config_data = {};
+  printf("[debug] starting setup...\n");
   INIT_STEP("config system", cfg::setup(config_data));
+  printf("[debug] config done, ip=%s\n", config_data.m_ip.c_str());
   INIT_STEP("memory", m_memory->setup());
+  printf("[debug] memory done\n");
+  printf("[debug] starting interfaces setup...\n");
   INIT_STEP("interfaces", i::setup());
+  printf("[debug] interfaces done\n");
+  printf("[debug] starting schema setup...\n");
   INIT_STEP("schema", schema::setup());
+  printf("[debug] schema done\n");
 
   ix::initNetSystem();
   LOG_INFO("winsock initialization completed");
@@ -21,11 +28,16 @@ bool main() {
   while (true) {
     const auto pid = m_memory->get_process_id("cs2.exe");
     if (pid.has_value()) {
-      LOG_INFO("cs2.exe detected (pid: %d)", pid.value());
+      printf("[info] cs2.exe detected (pid: %d)\n", pid.value());
       break;
     }
+    printf("[debug] cs2.exe not found, waiting...\n");
     std::this_thread::sleep_for(std::chrono::seconds(2));
   }
+
+  printf("[info] re-setting up memory after cs2 detected...\n");
+  m_memory->setup();
+  printf("[debug] memory re-setup done\n");
 
   const auto formatted_address =
       std::format("ws://{}:22006/cs2_webradar", config_data.m_ip);
@@ -55,6 +67,7 @@ bool main() {
                 formatted_address.c_str());
     }
   });
+  printf("[info] connecting to web socket...\n");
   web_socket.start();
 
   {
@@ -63,6 +76,7 @@ bool main() {
   }
 
   if (!connected) {
+    LOG_ERROR("failed to connect to web socket, exiting");
     std::this_thread::sleep_for(std::chrono::seconds(5));
     return {};
   }

@@ -9,10 +9,20 @@ static std::vector<schema_data_t> m_schema_data = {};
 bool schema::setup() {
   const auto start = std::chrono::high_resolution_clock::now();
 
+  if (!i::m_schema_system) {
+    printf("[warning] schema system is null, skipping schema setup\n");
+    return true;
+  }
+
   const auto type_scope =
       i::m_schema_system->find_type_scope_for_module(CLIENT_DLL());
   if (!type_scope)
     return {};
+
+  if (!type_scope) {
+    LOG_ERROR("type scope not found for module");
+    return false;
+  }
 
   const auto table_size = type_scope->m_hash_classes().size();
   std::unique_ptr<uintptr_t[]> elements =
@@ -20,6 +30,8 @@ bool schema::setup() {
 
   const auto elements_size =
       type_scope->m_hash_classes().get_elements(0, table_size, elements.get());
+  LOG_INFO("found '%d' schema classes in module '%s'", elements_size,
+           CLIENT_DLL());
   LOG_INFO("found '%d' schema classes in module '%s'", elements_size,
            CLIENT_DLL());
 
