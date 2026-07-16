@@ -1,14 +1,14 @@
-﻿// Demo sender - simulates usermode.exe data without CS2
-// Run with: node demo-sender.js
-import { WebSocketServer } from "ws";
+﻿// Demo sender - simula o usermode.exe enviando dados para o radar
+// Conecta em ws://localhost:22006/cs2_webradar (como o usermode.exe faria)
+// Use o iniciar_demo.bat para rodar tudo automaticamente
 
-const port = 22006;
-const server = WebSocketServer({ port, path: "/cs2_webradar" });
+import { WebSocket } from "ws";
 
-console.log(`Demo sender listening on port ${port}`);
+const ws = new WebSocket("ws://localhost:22006/cs2_webradar");
 
-server.on("connection", (ws) => {
-  console.log("Client connected");
+ws.on("open", () => {
+  console.log("Conectado ao servidor WebSocket!");
+  console.log("Enviando dados de jogadores falsos...");
 
   const players = [];
   const numPlayers = 10;
@@ -38,7 +38,8 @@ server.on("connection", (ws) => {
     },
   };
 
-  const interval = setInterval(() => {
+  // Envia dados a cada 100ms (igual o usermode.exe)
+  setInterval(() => {
     for (const p of players) {
       p.m_pos_x += (Math.random() - 0.5) * 50;
       p.m_pos_y += (Math.random() - 0.5) * 50;
@@ -48,9 +49,13 @@ server.on("connection", (ws) => {
 
     ws.send(JSON.stringify(data));
   }, 100);
+});
 
-  ws.on("close", () => {
-    clearInterval(interval);
-    console.log("Client disconnected");
-  });
+ws.on("error", (err) => {
+  console.error("Erro ao conectar:", err.message);
+  console.log("Certifique-se de que 'node ws/app.js' está rodando primeiro!");
+});
+
+ws.on("close", () => {
+  console.log("Conexão fechada");
 });
