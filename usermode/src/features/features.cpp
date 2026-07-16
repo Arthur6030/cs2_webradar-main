@@ -1,52 +1,53 @@
 #include "pch.hpp"
 
+static int g_fallback_counter = 0;
+
 void f::run() {
-  if (!sdk::m_local_controller) {
-    // Fallback: send demo data when CS2 memory reading is unavailable
-    // (signatures may be outdated)
-    static bool sent_demo = false;
-    if (!sent_demo) {
-      sent_demo = true;
-      LOG_WARNING("CS2 memory reading unavailable - sending demo data");
-    }
-
-    m_data = nlohmann::json{};
-    nlohmann::json players = nlohmann::json::array();
-
-    // Generate 10 fake players
-    for (int i = 0; i < 10; i++) {
-      nlohmann::json p;
-      p["m_idx"] = i;
-      p["m_team"] = (i % 2 == 0) ? 2 : 3;
-      p["m_pos_x"] = (rand() % 4000) - 2000;
-      p["m_pos_y"] = (rand() % 4000) - 2000;
-      p["m_health"] = 100;
-      p["m_is_dead"] = false;
-      p["m_name"] = "Player " + std::to_string(i);
-      players.push_back(p);
-    }
-
-    m_data["m_local_team"] = 2;
-    m_data["m_players"] = players;
-    m_data["m_map"] = "de_dust2";
-    m_data["m_bomb"] = {{"m_blow_time", 40.5},
-                        {"m_is_defused", false},
-                        {"m_is_defusing", false},
-                        {"m_defuse_time", 0}};
-    return;
-  }
-
-  const auto local_team = sdk::m_local_controller->m_iTeamNum();
-  if (local_team == e_team::none || local_team == e_team::spec)
-    return;
-
   m_data = nlohmann::json{};
   m_player_data = nlohmann::json{};
 
-  m_data["m_local_team"] = local_team;
+  // Try to read real CS2 data
+  if (sdk::m_local_controller) {
+    const auto local_team = sdk::m_local_controller->m_iTeamNum();
+    if (local_team != e_team::none && local_team != e_team::spec) {
+      m_data["m_local_team"] = local_team;
+      get_map();
+      get_player_info();
 
-  get_map();
-  get_player_info();
+      // If we got real players, send them
+      if (m_data["m_players"].size() > 0) {
+        g_fallback_counter = 0;
+        return;
+      }
+    }
+  }
+
+  // Fallback: send demo data
+  if (g_fallback_counter == 0) {
+    LOG_WARNING("CS2 memory reading unavailable - sending demo data");
+  }
+  g_fallback_counter++;
+
+  nlohmann::json players = nlohmann::json::array();
+  for (int i = 0; i < 10; i++) {
+    nlohmann::json p;
+    p["m_idx"] = i;
+    p["m_team"] = (i % 2 == 0) ? 2 : 3;
+    p["m_pos_x"] = (rand() % 4000) - 2000 + (rand() % 100 - 50);
+    p["m_pos_y"] = (rand() % 4000) - 2000 + (rand() % 100 - 50);
+    p["m_health"] = 100;
+    p["m_is_dead"] = false;
+    p["m_name"] = "Player " + std::to_string(i);
+    players.push_back(p);
+  }
+
+  m_data["m_local_team"] = 2;
+  m_data["m_players"] = players;
+  m_data["m_map"] = "de_dust2";
+  m_data["m_bomb"] = {{"m_blow_time", 40.5},
+                      {"m_is_defused", false},
+                      {"m_is_defusing", false},
+                      {"m_defuse_time", 0}};
 }
 
 void f::get_map() {
