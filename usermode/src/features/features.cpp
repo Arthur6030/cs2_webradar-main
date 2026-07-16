@@ -1,10 +1,62 @@
 #include "pch.hpp"
 
 static int g_fallback_counter = 0;
+static std::string g_detected_map = "de_dust2";
+
+// Tenta detectar o mapa atual do CS2 pela janela do processo
+void detect_map_from_window() {
+  // Lista de todos os mapas suportados
+  static const std::vector<std::string> known_maps = {
+      "de_dust2",   "de_inferno", "de_mirage",  "de_nuke",  "de_overpass",
+      "de_vertigo", "de_ancient", "de_anubis",  "de_train", "de_cache",
+      "de_cbble",   "de_canals",  "de_subzero", "de_aztec", "cs_office",
+      "cs_italy",   "cs_agency",  "de_thera",   "de_grail", "de_golden",
+      "de_palacio"};
+
+  // Tenta ler o nome do mapa da memória do CS2 procurando por strings
+  // conhecidas
+  const auto pid = m_memory->get_process_id("cs2.exe");
+  if (!pid.has_value())
+    return;
+
+  const auto handle = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION,
+                                  FALSE, pid.value());
+  if (!handle)
+    return;
+
+  // Procura pelo nome do mapa na memória do client.dll
+  const auto [module_base, module_size] =
+      m_memory->get_module_info("client.dll");
+  if (module_base.has_value() && module_size.has_value()) {
+    auto buffer = std::make_unique<uint8_t[]>(module_size.value());
+    SIZE_T bytes_read = 0;
+    if (ReadProcessMemory(handle, (LPCVOID)module_base.value(), buffer.get(),
+                          module_size.value(), &bytes_read)) {
+      for (const auto &map_name : known_maps) {
+        auto it = std::search(buffer.get(),
+                              buffer.get() + bytes_read - map_name.size(),
+                              map_name.begin(), map_name.end());
+        if (it != buffer.get() + bytes_read) {
+          g_detected_map = map_name;
+          printf("[debug] detected map from memory: %s\n",
+                 g_detected_map.c_str());
+          break;
+        }
+      }
+    }
+  }
+
+  CloseHandle(handle);
+}
 
 void f::run() {
   m_data = nlohmann::json{};
   m_player_data = nlohmann::json{};
+
+  // Tenta detectar o mapa a cada 1000 frames
+  if (g_fallback_counter % 1000 == 0) {
+    detect_map_from_window();
+  }
 
   // Try to read real CS2 data
   if (sdk::m_local_controller) {
@@ -25,6 +77,7 @@ void f::run() {
   // Fallback: send demo data
   if (g_fallback_counter == 0) {
     LOG_WARNING("CS2 memory reading unavailable - sending demo data");
+    detect_map_from_window();
   }
   g_fallback_counter++;
 
@@ -43,7 +96,7 @@ void f::run() {
 
   m_data["m_local_team"] = 2;
   m_data["m_players"] = players;
-  m_data["m_map"] = "de_dust2";
+  m_data["m_map"] = g_detected_map;
   m_data["m_bomb"] = {{"m_blow_time", 40.5},
                       {"m_is_defused", false},
                       {"m_is_defusing", false},
